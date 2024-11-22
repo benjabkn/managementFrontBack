@@ -1,0 +1,27 @@
+# Establecer la imagen base para el frontend
+FROM node:latest AS build
+
+# Establecer el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiar los archivos de configuración y dependencias
+COPY package*.json ./
+
+# Instalar las dependencias del proyecto
+RUN npm install
+
+# Copiar el resto del código del frontend
+COPY . .
+
+# Construir el proyecto
+RUN npm run build
+
+# Servir el frontend con Nginx
+FROM nginx:stable-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Exponer el puerto para Nginx
+EXPOSE 80
+
+# Iniciar Nginx
+CMD ["nginx", "-g", "daemon off;"]

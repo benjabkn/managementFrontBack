@@ -1,0 +1,36 @@
+version: 2.30.3
+services:
+  backend:
+    build:
+      context: ./restaurantManagement # Ruta al directorio del backend
+      dockerfile: Dockerfile # Nombre del Dockerfile del backend
+    ports:
+      - "3003:3003" # Mapea el puerto del backend (puerto contenedor:puerto host)
+    environment:
+      - PORT=3003 # Variable de entorno para definir el puerto
+    volumes:
+      - ./restaurantManagement:/usr/src/app # Monta el código del backend para desarrollo
+    networks:
+      - app-network # Red compartida entre servicios
+
+  mongo:
+    image: mongo:4.2
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./management-front # Ruta al directorio del frontend
+      dockerfile: Dockerfile # Nombre del Dockerfile del frontend
+    ports:
+      - "8080:80" # Mapea el puerto del frontend (Nginx)
+    depends_on:
+      - backend # Asegura que el backend se inicie primero
+    networks:
+      - app-network # Red compartida entre servicios
+
+networks:
+  app-network:
+    driver: bridge
