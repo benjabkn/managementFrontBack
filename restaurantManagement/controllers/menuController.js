@@ -1,11 +1,13 @@
 const MenuItem = require('../models/MenuItem');
+const Category = require("../models/Category");
+
 const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2; // Asegúrate de configurar Cloudinary en otro archivo si no lo has hecho
 
 // Obtener todos los elementos del menú
 exports.getAllMenuItems = async (req, res) => {
     try {
-        const menuItems = await MenuItem.find();
+        const menuItems = await MenuItem.find().populate('category', 'name');
         res.json(menuItems);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -15,31 +17,43 @@ exports.getAllMenuItems = async (req, res) => {
 // Método para crear un nuevo elemento en el menú
 exports.createMenuItem = async (req, res) => {
     try {
-        // Si hay una imagen en la solicitud, súbela a Cloudinary
-        let imageUrl = '';
-        if (req.file) {
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: 'menu_items', // Carpeta en Cloudinary
-                use_filename: true,
-                unique_filename: false
+        // Validar que la categoría existe
+        const categoryId = req.body.category;
+        const categoryExists = await Category.findById(categoryId);
+        if (!categoryExists) {
+            return res.status(400).json({
+                message: "Invalid category ID. The category does not exist.",
             });
-            imageUrl = result.secure_url; // URL de la imagen subida
         }
 
-        // Crea el nuevo ítem del menú
+        // Manejar la subida de la imagen (opcional)
+        let imageUrl = null;
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "menu_items",
+                use_filename: true,
+                unique_filename: false,
+            });
+            imageUrl = result.secure_url;
+        }
+
+        // Crear el item de menú con la categoría
         const newItem = await MenuItem.create({
-            ...req.body,
-            image: imageUrl // Agrega la URL de la imagen al objeto
+            name: req.body.name.trim(),
+            price: parseFloat(req.body.price),
+            category: categoryId, // Asocia el item a la categoría existente
+            stock: parseInt(req.body.stock) || 0,
+            image: imageUrl,
         });
 
         res.status(201).json({
-            message: 'New menu item successfully created!',
-            item: newItem
+            message: "New menu item successfully created!",
+            item: newItem,
         });
     } catch (error) {
         res.status(400).json({
-            message: 'Error creating menu item',
-            error: error.message
+            message: "Error creating menu item",
+            error: error.message,
         });
     }
 };
@@ -47,33 +61,55 @@ exports.createMenuItem = async (req, res) => {
 
 exports.updateMenuItemByIdentifier = async (req, res) => {
     const { identifier } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body }; // Copiar datos del cuerpo de la solicitud
 
     try {
         let item;
 
-        // Verifica si identifier es un ObjectId válido y busca por ID
+        // Buscar el producto por ID o por nombre para manejar la imagen anterior
         if (mongoose.Types.ObjectId.isValid(identifier)) {
-            item = await MenuItem.findByIdAndUpdate(identifier, updateData, { new: true });
+            item = await MenuItem.findById(identifier);
         }
-
-        // Si no se encontró por ID, intenta buscar por nombre
         if (!item) {
-            item = await MenuItem.findOneAndUpdate({ name: identifier }, updateData, { new: true });
+            item = await MenuItem.findOne({ name: identifier });
         }
 
-        // Si no se encuentra el producto, devuelve un 404
         if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        // Si se encuentra, devuelve el producto actualizado
+        // Si hay una imagen en la solicitud, súbela a Cloudinary
+        if (req.file) {
+        console.log("Subiendo nueva imagen:", req.file);
+
+            // Elimina la imagen anterior si existe
+            if (item.image) {
+                const publicId = item.image.split('/').pop().split('.')[0]; // Extraer el public_id
+                await cloudinary.uploader.destroy(`menu_items/${publicId}`);
+            }
+
+            // Subir la nueva imagen
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: 'menu_items',
+                use_filename: true,
+                unique_filename: false,
+            });
+            updateData.image = result.secure_url; // Guardar la nueva URL de la imagen
+        }
+
+        // Actualizar el producto con los nuevos datos
+        const updatedItem = await MenuItem.findByIdAndUpdate(item._id, updateData, { new: true });
+
+        // Devolver el producto actualizado
         res.status(200).json({
             message: 'Menu item updated successfully!',
-            item: item
+            item: updatedItem,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating item', error: error.message });
+        res.status(500).json({
+            message: 'Error updating item',
+            error: error.message,
+        });
     }
 };
 
@@ -126,19 +162,23 @@ exports.getMenuItemByIdentifier = async (req, res) => {
 
 exports.getCategories = async (req, res) => {
     try {
-        // Use distinct to get all unique categories
-        const categories = await Product.distinct('category');
+        // Verifica si hay documentos en la colección
+        const itemsCount = await MenuItem.countDocuments();
+        if (itemsCount === 0) {
+            return res.status(404).json({ message: 'No items found in the collection' });
+        }
 
-        res.status(200).json({
-            success: true,
-            categories
-        });
+        // Obtiene las categorías únicas
+        const categories = await MenuItem.distinct("category");
+
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: 'No categories found' });
+        }
+
+        // Responde con las categorías
+        res.status(200).json(categories);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching categories',
-            error: error.message
-        });
+        res.status(500).json({ message: 'Error retrieving categories', error: error.message });
     }
 };
 

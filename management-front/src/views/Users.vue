@@ -10,7 +10,7 @@
       <div class="modal-content">
         <span class="close" @click="closeCreateModal">&times;</span>
         <form @submit.prevent="createUser">
-          <h2>Crear Nuevo Usuario</h2>
+          <h2>Crear Usuario</h2>
           <div class="form-group">
             <label for="createUsername">Nombre:</label>
             <input type="text" id="createUsername" v-model="newUser.name" required /><br />
@@ -34,7 +34,7 @@
         <h1>Lista de Usuarios</h1>
       </div>
       <div class="flex-container">
-        <button @click="openCreateModal" class="btn btn-create">Crear Nuevo Usuario</button>
+        <button @click="openCreateModal" class="btn btn-create">Crear Usuario</button>
           <span class="mdi mdi-create mdi-24px"></span>
           <span class="mdi mdi-create mdi-24px"></span>
         <!-- Tabla de usuarios -->
@@ -57,8 +57,6 @@
           <td>
             <div class="table-action">
               <button @click="openEditModal(user)" class="btn btn-edit">Editar</button>
-              <span class="mdi mdi-edit mdi-24px"></span>
-              <span class="mdi mdi-edit mdi-24px"></span>
               <button @click="deleteUser(user._id)" class="btn btn-delete">
                 <span class="mdi mdi-delete mdi-24px"></span>
                 <span class="mdi mdi-delete-empty mdi-24px"></span>

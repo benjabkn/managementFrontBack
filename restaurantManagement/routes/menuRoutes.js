@@ -9,12 +9,13 @@ const { createMenuItem } = require('../controllers/menuController');
 router.get('/', menuController.getAllMenuItems);
 router.post('/', upload.single('image'), createMenuItem);
 
+router.put('/:identifier', upload.single('image'), menuController.updateMenuItemByIdentifier);
 
-router.put('/:identifier', menuController.updateMenuItemByIdentifier);
 router.get('/:identifier', menuController.getMenuItemByIdentifier);
 router.delete('/:id', menuController.deleteMenuItem);
 
-router.get('/categories', menuController.getCategories);
+
+
 
 
 

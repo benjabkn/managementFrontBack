@@ -5,8 +5,8 @@ const mongoose = require('mongoose');
 const morgan = require('morgan');
 const axios = require('axios');
 const menuRoutes = require('./routes/menuRoutes'); // Rutas para el menú
-const categoryRoutes = require('./routes/categoryRoutes'); // Ajusta la ruta según tu estructura
 const userRoutes = require('./routes/userRoutes'); // Ajusta la ruta según tu estructura
+const categoryRoutes = require('./routes/categoryRoutes');
 
 const path = require('path');
 
@@ -24,13 +24,17 @@ app.use(cors());
 
 // Rutas
 app.use('/api/menu', menuRoutes); // Monta las rutas de menú en "/api/menu"
-app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+
+
+
+
 
 
 // Manejo de errores 404
 app.use((req, res, next) => {
-  res.status(404).json({ error: 'Not Found' });
+  res.status(404).json({ error: err.message });
 });
 
 // Manejador de errores
