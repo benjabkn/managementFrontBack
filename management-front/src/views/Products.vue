@@ -2,17 +2,43 @@
     <div>
         <h1>Catálogo de Productos</h1>
 
-            <!-- Galería de productos -->
+        <!-- Filtros por categoría como botones (toggle) -->
+        <div class="filters">
+            <button 
+                v-for="category in categories" 
+                :key="category" 
+                @click="toggleFilter(category)"
+                :class="{ 'active': selectedCategories.includes(category) }">
+                {{ category }}
+            </button>
+        </div>
+        
+        <!-- Componente de búsqueda -->
+        <div class="product-table">
+            <div class="search-component">
+                <input 
+                    class="top-bar-search" 
+                    placeholder="Buscar producto por nombre" 
+                    v-model="searchQuery"
+                    @input="filterProducts" />
+            </div>
+        </div>
+        
+        <!-- Galería de productos -->
         <div class="gallery">
-            <div v-for="product in products" :key="product.id" class="product">
+            <div v-for="product in filteredProducts" :key="product.id" class="product">
                 <img :src="product.image" :alt="product.name" />
                 <h3>{{ product.name }}</h3>
                 <p>{{ product.description }}</p>
+                <p v-if="product.category && product.category.name">{{ product.category.name }}</p>
+                <p v-else>No disponible</p>
+                <p>{{ product.stock }}</p>
                 <p><strong>${{ product.price }}</strong></p>
             </div>
         </div>
     </div>
 </template>
+
 
 <script>
 import axios from "axios";
@@ -21,24 +47,83 @@ export default {
     name: "ProductsView",
     data() {
         return {
-            products: [],
-
+            products: [], // Todos los productos
+            filteredProductsList: [], // Lista de productos filtrados
+            categories: [], // Lista de categorías (solo nombres)
+            selectedCategories: [], // Categorías seleccionadas para el filtro
+            searchQuery: "", // Texto de búsqueda
             apiUrl: "http://localhost:3003/api/menu", // URL base de la API
-
         };
+    },
+    computed: {
+        // Filtrar productos según la categoría seleccionada y la búsqueda
+        filteredProducts() {
+            let filtered = this.filteredProductsList;
+
+            // Filtrar productos según las categorías seleccionadas
+            if (this.selectedCategories.length > 0) {
+                filtered = filtered.filter(product => 
+                    product.category && product.category.name && this.selectedCategories.includes(product.category.name)
+                );
+            }
+
+            // Filtrar productos según la búsqueda
+            if (this.searchQuery) {
+                filtered = filtered.filter(product => 
+                    product.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                    (product.category && product.category.name.toLowerCase().includes(this.searchQuery.toLowerCase()))
+                );
+            }
+
+            return filtered;
+        },
     },
     methods: {
         async loadProducts() {
             try {
                 const response = await axios.get(this.apiUrl);
                 this.products = response.data;
+                this.filteredProductsList = [...this.products]; // Inicializar lista filtrada
+
+                // Extraer categorías únicas de los productos, asegurándose de que no sean null
+                this.categories = [
+                    ...new Set(
+                        this.products
+                            .map(product => product.category && product.category.name ? product.category.name : null) // Asegurarse de que la categoría existe
+                            .filter(category => category !== null) // Filtrar las categorías null
+                    ),
+                ];
             } catch (error) {
                 console.error("Error al cargar productos:", error);
             }
         },
+        filterProducts() {
+            const query = this.searchQuery.toLowerCase();
+
+            // Filtrar productos por nombre y categoría
+            this.filteredProductsList = this.products.filter((product) => {
+                const category = product.category && product.category.name ? product.category.name.toLowerCase() : '';
+                return (
+                    product.name.toLowerCase().includes(query) ||
+                    category.includes(query)
+                );
+            });
+        },
+        toggleFilter(category) {
+            // Alternar filtro: Si la categoría ya está seleccionada, eliminarla, si no, añadirla
+            const index = this.selectedCategories.indexOf(category);
+            if (index > -1) {
+                this.selectedCategories.splice(index, 1); // Eliminar categoría
+            } else {
+                this.selectedCategories.push(category); // Añadir categoría
+            }
+        },
+        clearFilter() {
+            this.selectedCategories = []; // Limpiar los filtros
+        }
     },
     mounted() {
-        this.loadProducts(); // Cargar usuarios al montar el componente
+        this.loadProducts(); // Cargar productos al montar el componente
     },
 };
 </script>
@@ -68,5 +153,43 @@ export default {
 .product h3 {
     font-size: 1.2em;
     margin: 10px 0;
+}
+
+.filters {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.filters button {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.filters button:hover {
+    background-color: #e0e0e0;
+}
+
+.filters button.active {
+    background-color: #007bff;
+    color: white;
+}
+.top-bar-search {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.search-component {
+  display: flex;
+  align-items: flex-end;
 }
 </style>

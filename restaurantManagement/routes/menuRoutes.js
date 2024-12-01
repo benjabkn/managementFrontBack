@@ -16,6 +16,7 @@ router.delete('/:id', menuController.deleteMenuItem);
 
 
 
+router.get('a/', menuController.getProductsByCategory);
 
 
 

@@ -7,15 +7,48 @@
 
     <!-- Botón para agregar productos -->
     <div class="flex-container">
+      <h1 class="bold">Lista de productos</h1>
       <button @click="openCreateModal" class="btn btn-create">Crear producto</button>
       <button @click="openCreateCategoryModal" class="btn btn-create">Crear categoria</button>
+      <button @click="openDeleteCategoryModal" class="btn btn-create">Borrar categoria</button>
 
       <!-- Tabla de usuarios -->
-      <div class="product-table">
-        <input class="top-bar-search" placeholder="Buscar producto por nombre" v-model="searchQuery"
-          @input="filterProducts" />
+      <div>
+        <div class="product-table">
+          <div class="search-component">
+            <input class="top-bar-search" placeholder="Buscar producto por nombre" v-model="searchQuery"
+              @input="filterProducts" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- Modal para confirmar eliminación de categoría -->
+    <div v-if="showDeleteCategoryModal" class="modal">
+      <div class="modal-content">
+        <span class="close" @click="closeDeleteCategoryModal">&times;</span>
+        <h2>Selecciona una categoría para eliminar:</h2>
+
+        <!-- Dropdown para seleccionar la categoría a eliminar -->
+        <div class="form-group">
+          <select v-model="categoryToDelete" required>
+            <option disabled value="">Selecciona una categoría</option>
+            <option v-for="category in categories" :key="category._id" :value="category._id">
+              {{ category.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Botones para cancelar o confirmar eliminación -->
+        <div class="form-actions">
+          <button @click="confirmDeleteCategory" class="btn btn-danger" :disabled="!categoryToDelete">
+            Confirmar Eliminación
+          </button>
+          <button @click="closeDeleteCategoryModal" class="btn btn-secondary">Cancelar</button>
+        </div>
       </div>
     </div>
+
     <!-- Tabla de productos -->
     <div class="container-up-table">
       <table class="product-table">
@@ -125,18 +158,16 @@
             </div>
             <div class="form-group">
               <div>
-                <section>
-                  <summary role="button">
-                    <a class="button">Categoría:</a>
-                  </summary>
-                  <div class="dropbox">
-                    <select v-model="newProduct.category" required>
-                      <option class="bar" v-for="category in categories" :key="category._id" :value="category._id">
-                        {{ category.name }}
-                      </option>
-                    </select>
-                  </div>
-                </section>
+                <div role="button">
+                  <a class="button">Categoría:</a>
+                </div>
+                <div class="dropbox">
+                  <select v-model="newProduct.category" required>
+                    <option class="bar" v-for="category in categories" :key="category._id" :value="category._id">
+                      {{ category.name }}
+                    </option>
+                  </select>
+                </div>
               </div>
 
             </div>
@@ -179,7 +210,11 @@
             </div>
             <div class="form-group">
               <label for="editCategory">Categoría:</label>
-              <input type="text" id="editCategory" v-model="editProduct.category" />
+              <select v-model="editProduct.category" required>
+                <option v-for="category in categories" :key="category._id" :value="category._id">
+                  {{ category.name }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label for="editStock">Stock:</label>
@@ -217,6 +252,8 @@ export default {
       showCreateModal: false, // Control para mostrar/ocultar el modal de creación
       showEditModal: false, // Control para mostrar/ocultar el modal de edición
       showCreateCategoryModal: false, // Control para mostrar/ocultar el modal de categorías
+      showDeleteCategoryModal: false, // Controla la visibilidad del modal de eliminación
+      categoryToDelete: null, // Guarda la categoría seleccionada para eliminar
       newCategory: {
         name: ""
       },
@@ -249,6 +286,7 @@ export default {
       }
     },
     async loadCategories() {
+
       try {
         const response = await axios.get(this.apiUrlCategory);
         if (response.status === 200) {
@@ -263,11 +301,13 @@ export default {
     },
     filterProducts() {
       const query = this.searchQuery.toLowerCase();
-      this.filteredProducts = this.products.filter(
-        (product) =>
+      this.filteredProducts = this.products.filter((product) => {
+        const category = product.category ? String(product.category).toLowerCase() : '';
+        return (
           product.name.toLowerCase().includes(query) ||
-          product.category?.toLowerCase().includes(query)
-      );
+          category.includes(query)
+        );
+      });
     },
     openCreateModal() {
       this.showCreateModal = true;
@@ -278,6 +318,12 @@ export default {
     },
     openEditModal(product) {
       this.editProduct = { ...product }; // Copia los datos del producto seleccionado
+      if (this.editProduct.category) {
+        // Si la categoría está presente, buscamos el objeto de la categoría completo
+        const category = this.categories.find(cat => cat._id === this.editProduct.category._id || cat._id === this.editProduct.category);
+        this.editProduct.category = category ? category._id : ""; // Asignamos el ID de la categoría completa al campo
+      }
+
       this.showEditModal = true;
     },
     closeEditModal() {
@@ -291,6 +337,16 @@ export default {
     closeCreateCategoryModal() {
       this.showCreateCategoryModal = false;
     },
+    openDeleteCategoryModal(category) {
+      this.categoryToDelete = category; // Asigna la categoría que se va a eliminar
+      this.showDeleteCategoryModal = true; // Muestra el modal
+    },
+
+    // Cierra el modal de confirmación
+    closeDeleteCategoryModal() {
+      this.showDeleteCategoryModal = false;
+      this.categoryToDelete = null; // Limpiar la categoría a eliminar
+    },
     handleNewImageUpload(event) {
       this.newProduct.image = event.target.files[0];
     },
@@ -299,6 +355,54 @@ export default {
     },
     handleImageUpload(event) {
       this.newProduct.image = event.target.files[0];
+    },
+    async confirmDeleteCategory() {
+    if (!this.categoryToDelete) {
+      alert("Por favor, selecciona una categoría para eliminar.");
+      return;
+    }
+
+    try {
+      // Usar la URI proporcionada para eliminar la categoría seleccionada
+      const response = await axios.delete(`http://localhost:3003/api/categories/${this.categoryToDelete}`);
+      
+      if (response.status === 200 || response.status === 204) {
+        alert("Categoría eliminada con éxito.");
+        this.loadCategories(); // Recargar la lista de categorías después de la eliminación
+        this.closeDeleteCategoryModal(); // Cerrar el modal
+        this.loadProducts(); //
+        this.loadCategories();
+      } else {
+        alert("Error al eliminar la categoría.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar la categoría:", error);
+      alert("Ocurrió un error al eliminar la categoría.");
+    }
+  },
+    async getProductWithCategory(productId) {
+      try {
+        // Primero obtenemos el producto por su ID
+        const productResponse = await axios.get(`${this.apiUrl}/${productId}`);
+        const product = productResponse.data;
+
+        // Ahora obtenemos la categoría usando el ID de la categoría que está en el producto
+        if (product.category) {
+          const categoryResponse = await axios.get(`${this.apiUrlCategory}/${product.category}`);
+          const category = categoryResponse.data;
+
+          // Asignamos el nombre de la categoría al producto
+          product.categoryName = category.name;  // Aquí estamos añadiendo el nombre de la categoría al producto
+
+          return product;  // Devolvemos el producto con el nombre de la categoría
+        } else {
+          console.error("El producto no tiene categoría asociada.");
+          return product;
+        }
+      } catch (error) {
+        console.error("Error al obtener el producto y la categoría:", error);
+        throw error;  // Lanzamos el error para manejarlo en el componente
+      }
     },
     async handleCreateProduct() {
       this.isSubmitting = true; // Deshabilitar el botón
@@ -329,10 +433,25 @@ export default {
     async handleCreateCategory() {
       this.isSubmitting = true;
       try {
-        const formData = new FormData();
-        formData.append("name", this.newCategory.name.trim());
+        // Verificar si el nombre está vacío
+        if (!this.newCategory.name.trim()) {
+          alert("Por favor ingresa un nombre para la categoría.");
+          this.isSubmitting = false;
+          return;
+        }
 
-        const response = await axios.post(this.apiUrlCategory, formData);
+        const categoryData = {
+          name: this.newCategory.name.trim(),
+        };
+
+        // Revisar el contenido de categoryData para asegurarse de que tiene el nombre
+        console.log("Enviando datos:", categoryData);
+
+        const response = await axios.post(this.apiUrlCategory, categoryData, {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
 
         if (response.status === 200 || response.status === 201) {
           alert("Categoría creada con éxito.");
@@ -347,7 +466,8 @@ export default {
       } finally {
         this.isSubmitting = false;
       }
-    },
+    }
+    ,
 
     async handleEditProduct() {
       this.isSubmitting = true; // Deshabilitar el botón de envío
@@ -362,12 +482,6 @@ export default {
         if (this.editProduct.image) {
           formData.append("image", this.editProduct.image);
         }
-
-        console.log("Contenido de FormData:");
-        for (let pair of formData.entries()) {
-          console.log(pair[0], pair[1]);
-        }
-
         const response = await axios.put(
           `${this.apiUrl}/${this.editProduct._id}`,
           formData,
@@ -440,8 +554,9 @@ export default {
   /* Texto blanco */
   display: flex;
   margin-left: auto;
-  gap: 4px
-    /* Empuja el botón hacia la derecha */
+  gap: 40px;
+  justify-content: center;
+  padding-top: 6px;
 
 }
 
@@ -895,5 +1010,15 @@ body {
   position: relative;
   min-width: 200px;
 
+}
+
+.search-component {
+  display: flex;
+  align-items: flex-end;
+}
+
+.bold {
+  font-weight: bold;
+  color: black
 }
 </style>

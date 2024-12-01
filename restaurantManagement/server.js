@@ -24,6 +24,7 @@ app.use(cors());
 
 // Rutas
 app.use('/api/menu', menuRoutes); // Monta las rutas de menú en "/api/menu"
+app.use('/api/menu/a', menuRoutes); // Monta las rutas de menú en "/api/menu"
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 

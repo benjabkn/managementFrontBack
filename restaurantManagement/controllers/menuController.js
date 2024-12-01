@@ -6,6 +6,7 @@ const cloudinary = require('cloudinary').v2; // Asegúrate de configurar Cloudin
 
 // Obtener todos los elementos del menú
 exports.getAllMenuItems = async (req, res) => {
+    console.log(req.query)
     try {
         const menuItems = await MenuItem.find().populate('category', 'name');
         res.json(menuItems);
@@ -62,7 +63,7 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItemByIdentifier = async (req, res) => {
     const { identifier } = req.params;
     const updateData = { ...req.body }; // Copiar datos del cuerpo de la solicitud
-
+    console.log(req.body)
     try {
         let item;
 
@@ -182,3 +183,31 @@ exports.getCategories = async (req, res) => {
     }
 };
 
+exports.getProductsByCategory = async (req, res) => {
+    const { categoryId } = req.body;  // Obtener categoryId desde el cuerpo de la solicitud
+    console.log(req.body)
+    if (!categoryId) {
+        return res.status(400).json({ message: 'Category ID is required' });
+    }
+
+    try {
+        // Verificar si la categoría existe
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        // Obtener todos los productos que pertenecen a esta categoría
+        const menuItems = await MenuItem.find({ category: categoryId }).populate('category', 'name');
+
+        if (menuItems.length === 0) {
+            return res.status(404).json({ message: 'No products found in this category' });
+        }
+
+        // Devolver los productos encontrados
+        res.status(200).json(menuItems);
+    } catch (error) {
+        // Devolver el error real en lugar de un mensaje estático
+        res.status(500).json({ error: error.message });
+    }
+};
