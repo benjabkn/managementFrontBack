@@ -1,0 +1,13 @@
+/* styles.css */
+
+/* Establecer una fuente universal */
+* {
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif; /* Cambia 'Arial' por la fuente que desees */
+    background-color: #f0f0f0; /* Color de fondo opcional */
+    color: #333; /* Color de texto opcional */
+  }
