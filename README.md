@@ -6,4 +6,7 @@ Management es un proyecto creado con Node.js para el back-end y Vue.js para el f
 
 ### 1. Instalar dependencias en ambas carpetas del proyecto
 Para instalar todas las dependencias necesarias, ejecuta el siguiente comando en ambas carpetas del back-end y el front-end:
-npm install
+
+# npm install
+
+## TRELLO https://trello.com/b/v5xCbx5k/web-development
