@@ -2,6 +2,9 @@
   <div id="app">
     <nav>
       <router-link v-if="isAuthenticated" to="/users">Usuarios</router-link>
+      <router-link to="/Calendario">Calendario</router-link> <
+
+
       <router-link to="/">Catálogo</router-link>
       <router-link v-if="isAuthenticated" to="/productManagement">Editar producto</router-link>
       

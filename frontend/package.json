@@ -11,7 +11,9 @@
     "@mdi/font": "^7.4.47",
     "@websanova/vue-auth": "^4.2.1",
     "axios": "^1.7.8",
+    "dayjs": "^1.11.13",
     "vue": "^3.2.13",
+    "vue-cal": "^4.10.0",
     "vue-router": "^4.5.0",
     "vuex": "^4.1.0"
   },

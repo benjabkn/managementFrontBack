@@ -15,6 +15,7 @@ const app = express();
 const passport = require('passport');
 const jwtAuth = require('./middleware/jwtAuth');
 const authRoutes = require('./routes/loginRoutes');
+const appointmentRoutes = require('./routes/appointments');
 
 // Middlewares
 app.use(morgan('dev'));
@@ -32,6 +33,7 @@ app.use('/api/menu/a', menuRoutes); // Monta las rutas de menú en "/api/menu"
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api', authRoutes);
+app.use('/api', appointmentRoutes);
 
 
 

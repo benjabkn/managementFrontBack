@@ -4,6 +4,7 @@ import Products from '@/views/Products.vue';
 import ProductosCrud from '@/views/ProductosCrud.vue';
 import Login from '@/views/Login.vue';
 import ErrorPage from '@/views/ErrorPage.vue'; // Importa la página de error
+import Calendar from '@/views/Calendar.vue';
 
 const routes = [
   {
@@ -54,6 +55,11 @@ const routes = [
     path: '/error',
     name: 'ErrorPage', // Ruta para la página de error
     component: ErrorPage,
+  },
+  {
+    path: '/Calendario',
+    name: 'Calendario', // Ruta para la página de calendario
+    component: Calendar,
   }
 ];
 
