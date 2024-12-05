@@ -16,7 +16,9 @@ const passport = require('passport');
 const jwtAuth = require('./middleware/jwtAuth');
 const authRoutes = require('./routes/loginRoutes');
 const appointmentRoutes = require('./routes/appointments');
-
+const reservationRoutes = require('./routes/reservationRoutes');
+const tableRoutes = require('./routes/tablesRoutes');
+const zoneRoutes = require('./routes/zonesRoutes');
 // Middlewares
 app.use(morgan('dev'));
 app.use(express.json());
@@ -34,7 +36,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api', authRoutes);
 app.use('/api', appointmentRoutes);
-
+app.use('/api', reservationRoutes);
+app.use('/api', tableRoutes);
+app.use('/api', zoneRoutes);
 
 
 // Configurar el puerto y la URI de MongoDB desde el archivo .env
