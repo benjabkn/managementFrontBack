@@ -1,25 +1,24 @@
-// models/mesa.js
 const mongoose = require('mongoose');
 
-const mesaSchema = new mongoose.Schema({
+const tableSchema = new mongoose.Schema({
     tableNumber: {
         type: String,
-        required: true
+        required: true,
     },
     ability: {
         type: Number,
-        required: true
+        required: true,
     },
     isAvailable: {
         type: Boolean,
-        default: true, required: true
+        default: true,
     },
     area: {
-        type: String,
-        required: true
-    }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Zone', // Relación con zonas
+        required: true,
+    },
 });
 
-const Mesa = mongoose.model('Table', mesaSchema);
-
-module.exports = Mesa;
+const Table = mongoose.models.Table || mongoose.model('Table', tableSchema);
+module.exports = Table;

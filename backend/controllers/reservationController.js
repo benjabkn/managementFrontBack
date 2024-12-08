@@ -5,63 +5,60 @@ const Zone = require('../models/Zones'); // Importar el modelo de Zone
 const mongoose = require('mongoose');
 
 // Función para verificar la disponibilidad de la mesa en el rango de fechas
-exports.checkTableAvailability = async (tableId, startTime, endTime) => {
+exports.checkTableAvailability = async (tableId, startDate, endDate) => {
     try {
-      // Verificar si ya existen reservas que se solapen con el rango solicitado
-      const overlappingReservations = await Reservation.find({
-        tableId: tableId,
-        $or: [
-          // Si la nueva reserva comienza antes de que termine una existente
-          { startDate: { $lt: endTime }, endDate: { $gte: startTime } },
-          // Si la nueva reserva termina después de que comienza una existente
-          { startDate: { $lte: endTime }, endDate: { $gte: startTime } },
-        ],
-      });
-  
-      // Si existe alguna reserva que se solape, no está disponible
-      return overlappingReservations.length === 0;
-    } catch (error) {
-      console.error(error);
-      throw new Error('Error checking table availability');
-    }
-  };
+        // Buscar reservas para la mesa específica
+        const reservations = await Reservation.find({ tableId });
 
-  exports.createReservation = async (req, res) => {
-    const {numberOfPeople, startDate, endDate, zone, tableId, name} = req.body;  // Obtener los datos de la reserva
-    console.log(req.body);
+        // Verificar conflicto de fechas
+        const hasConflict = reservations.some(reservation => {
+            const resStart = new Date(reservation.startDate);
+            const resEnd = new Date(reservation.endDate);
+
+            return (
+                (startDate >= resStart && startDate <= resEnd) || // Inicio dentro de una reserva existente
+                (endDate >= resStart && endDate <= resEnd) || // Fin dentro de una reserva existente
+                (startDate <= resStart && endDate >= resEnd) // Rango abarca la reserva existente
+            );
+        });
+
+        return !hasConflict; // La mesa está disponible si no hay conflictos
+    } catch (error) {
+        console.error(error);
+        throw new Error('Error checking table availability');
+    }
+};
+
+exports.createReservation = async (req, res) => {
+    const { tableId, startDate, endDate, name, numberOfPeople, zone } = req.body;
+
     try {
-      // Verificar la disponibilidad de la mesa
-      const isAvailable = await exports.checkTableAvailability(
-        tableId,
-        new Date(startDate),
-        new Date(endDate)
-      );
-  
-      if (!isAvailable) {
-        return res.status(400).json({ message: 'The table is not available at this time' });
-      }
-  
-      // Crear la reserva si la mesa está disponible
-      const newReservation = new Reservation({
-        tableId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        zone,
-        numberOfPeople,
-        name
-      });
-      
-      await newReservation.save();
-  
-      return res.status(200).json(newReservation); // Responder con la reserva creada
+        // Verificar disponibilidad
+    
+        const isAvailable = await exports.checkTableAvailability(tableId, new Date(startDate), new Date(endDate));
+        console.log(isAvailable)
+        if (!isAvailable) {
+            return res.status(400).json({ message: 'The table is not available at this time' });
+        }
+
+        // Crear la reserva
+        const newReservation = new Reservation({
+            tableId,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            name,
+            numberOfPeople,
+            zone,
+        });
+
+        await newReservation.save();
+
+        res.status(200).json({ message: 'Reservation created successfully', reservation: newReservation });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Error creating reservation' });
+        console.error(error);
+        res.status(500).json({ message: 'Error creating reservation', error });
     }
-  };
-
-
-
+};
 
 exports.getReservations = async (req, res) => {
     try {
@@ -175,7 +172,7 @@ exports.getZonesFromReservations = async (req, res) => {
     try {
         // Obtener todas las reservas, solo el campo 'zone'
         const reservations = await Reservation.distinct('zone');
-        
+
         // Si no se encuentran zonas
         if (!reservations.length) {
             return res.status(404).json({ message: 'No zones found in reservations' });
@@ -189,3 +186,16 @@ exports.getZonesFromReservations = async (req, res) => {
     }
 };
 
+
+exports.getReservationsByTable = async (req, res) => {
+    const { tableId } = req.params;
+
+    try {
+        const reservations = await Reservation.find({ tableId }).populate('tableId');
+
+        res.status(200).json({ reservations });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error retrieving reservations', error });
+    }
+};

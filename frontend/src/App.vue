@@ -3,7 +3,7 @@
     <nav>
       <router-link v-if="isAuthenticated" to="/users">Usuarios</router-link>
 
-      <router-link to="/Reservas">Reservas</router-link> <
+      <router-link to="/Reservas">Reservas</router-link> 
 
 
       <router-link to="/">Catálogo</router-link>
